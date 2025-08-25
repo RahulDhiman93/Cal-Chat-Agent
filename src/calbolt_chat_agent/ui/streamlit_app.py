@@ -1,4 +1,4 @@
-"""Streamlit web interface for LiveX Chat Agent."""
+"""Streamlit web interface for CalBolt Chat Agent."""
 
 import streamlit as st
 import uuid
@@ -16,8 +16,8 @@ if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
 try:
-    from livex_chat_agent.core.agent import LiveXChatAgent
-    from livex_chat_agent.config.settings import settings
+    from calbolt_chat_agent.core.agent import LiveXChatAgent
+    from calbolt_chat_agent.config.settings import settings
 except ImportError:
     # Fallback for relative imports
     from ..core.agent import LiveXChatAgent
@@ -26,7 +26,7 @@ except ImportError:
 
 # Page configuration
 st.set_page_config(
-    page_title="LiveX Chat Agent",
+    page_title="CalBolt Chat Agent",
     page_icon="L",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -125,7 +125,7 @@ st.markdown("""
 
 
 class StreamlitChatInterface:
-    """Streamlit chat interface for LiveX Chat Agent."""
+    """Streamlit chat interface for CalBolt Chat Agent."""
     
     def __init__(self):
         """Initialize the Streamlit interface."""
@@ -162,7 +162,7 @@ class StreamlitChatInterface:
         """Render the main header."""
         st.markdown("""
         <div class="main-header">
-            <h1>LiveX Chat Agent</h1>
+            <h1>CalBolt Chat Agent</h1>
             <p>Professional Calendar Management Assistant</p>
         </div>
         """, unsafe_allow_html=True)
@@ -292,7 +292,7 @@ class StreamlitChatInterface:
             if not st.session_state.chat_history:
                 st.markdown("""
                 <div class="info-message">
-                    Welcome! I'm your LiveX Chat Agent. I can help you:
+                    Welcome! I'm your CalBolt Chat Agent. I can help you:
                     <ul>
                         <li>Book new meetings</li>
                         <li>List your scheduled meetings</li>
@@ -326,7 +326,7 @@ class StreamlitChatInterface:
         # Render message
         st.markdown(f"""
         <div class="chat-message {message_class}">
-            <strong>{'You' if is_user else 'LiveX Agent'}{timestamp_str}:</strong><br>
+            <strong>{'You' if is_user else 'CalBolt Agent'}{timestamp_str}:</strong><br>
             {message['content']}
         </div>
         """, unsafe_allow_html=True)
@@ -421,7 +421,7 @@ class StreamlitChatInterface:
         st.download_button(
             label="Download Chat History",
             data=json.dumps(export_data, indent=2),
-            file_name=f"livex_chat_{st.session_state.session_id[:8]}.json",
+            file_name=f"calbolt_chat_{st.session_state.session_id[:8]}.json",
             mime="application/json"
         )
     

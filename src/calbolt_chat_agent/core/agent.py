@@ -14,14 +14,14 @@ from ..api.calcom_client import CalcomClient
 
 
 class LiveXChatAgent:
-    """LiveX Chat Agent for calendar operations using OpenAI function calling."""
+    """CalBolt Chat Agent for calendar operations using OpenAI function calling."""
     
     def __init__(self, 
                  openai_api_key: Optional[str] = None,
                  calcom_client: Optional[CalcomClient] = None,
                  model_name: Optional[str] = None,
                  temperature: Optional[float] = None):
-        """Initialize the LiveX Chat Agent.
+        """Initialize the CalBolt Chat Agent.
         
         Args:
             openai_api_key: OpenAI API key. If not provided, uses settings.
@@ -61,7 +61,7 @@ class LiveXChatAgent:
     
     def _create_system_prompt(self) -> str:
         """Create the system prompt for the agent."""
-        return """You are LiveX Chat Agent, an AI assistant specialized in helping users manage their calendar and meetings through Cal.com integration.
+        return """You are CalBolt Chat Agent, an AI assistant specialized in helping users manage their calendar and meetings through Cal.com integration.
 
 **Your Capabilities:**
 - Book new meetings with specified date, time, and attendee details
@@ -176,7 +176,7 @@ class LiveXChatSession:
         
         Args:
             session_id: Unique session identifier
-            agent: LiveX chat agent instance
+            agent: CalBolt chat agent instance
         """
         self.session_id = session_id
         self.agent = agent or LiveXChatAgent()

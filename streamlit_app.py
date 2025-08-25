@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone Streamlit app for LiveX Chat Agent."""
+"""Standalone Streamlit app for CalBolt Chat Agent."""
 
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
 # Import and run the Streamlit app
-from livex_chat_agent.ui.streamlit_app import main
+from calbolt_chat_agent.ui.streamlit_app import main
 
 if __name__ == "__main__":
     main()

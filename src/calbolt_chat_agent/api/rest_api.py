@@ -1,4 +1,4 @@
-"""REST API endpoints for the LiveX Chat Agent."""
+"""REST API endpoints for the CalBolt Chat Agent."""
 
 import uuid
 from typing import Dict, List, Optional
@@ -46,7 +46,7 @@ class ErrorResponse(BaseModel):
 
 # Create FastAPI app
 app = FastAPI(
-    title="LiveX Chat Agent API",
+    title="CalBolt Chat Agent API",
     description="AI-powered chatbot for Cal.com calendar management",
     version="1.0.0",
     docs_url="/docs",
@@ -316,7 +316,7 @@ async def startup_event():
     try:
         # Validate settings
         settings.validate_required_settings()
-        print("✅ LiveX Chat Agent API started successfully")
+        print("✅ CalBolt Chat Agent API started successfully")
         print(f"📊 Debug mode: {settings.debug}")
         print(f"🔑 OpenAI API key configured: {'Yes' if settings.openai_api_key else 'No'}")
         print(f"📅 Cal.com API key configured: {'Yes' if settings.calcom_api_key else 'No'}")
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     import uvicorn
     
     uvicorn.run(
-        "livex_chat_agent.api.rest_api:app",
+        "calbolt_chat_agent.api.rest_api:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug

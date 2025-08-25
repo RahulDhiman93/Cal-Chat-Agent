@@ -1,4 +1,4 @@
-"""Configuration settings for the LiveX Chat Agent."""
+"""Configuration settings for the CalBolt Chat Agent."""
 
 import os
 from typing import Optional

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Main entry point for LiveX Chat Agent."""
+"""Main entry point for CalBolt Chat Agent."""
 
 import sys
 import os
@@ -10,7 +10,7 @@ from pathlib import Path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-from livex_chat_agent.config.settings import settings
+from calbolt_chat_agent.config.settings import settings
 
 
 def run_streamlit():
@@ -39,7 +39,7 @@ def run_api():
     print(f"🚀 Starting FastAPI server on http://{settings.host}:{settings.port}")
     
     uvicorn.run(
-        "livex_chat_agent.api.rest_api:app",
+        "calbolt_chat_agent.api.rest_api:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug
@@ -48,9 +48,9 @@ def run_api():
 
 def run_cli():
     """Run the command line interface."""
-    from livex_chat_agent.core.agent import LiveXChatAgent
+    from calbolt_chat_agent.core.agent import LiveXChatAgent
     
-    print("🤖 LiveX Chat Agent - CLI Mode")
+    print("🤖 CalBolt Chat Agent - CLI Mode")
     print("Type 'exit' or 'quit' to end the conversation\n")
     
     try:
@@ -138,7 +138,7 @@ def setup_env():
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="LiveX Chat Agent - AI-powered calendar assistant",
+        description="CalBolt Chat Agent - AI-powered calendar assistant",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
