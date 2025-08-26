@@ -1,6 +1,7 @@
 """Core chatbot agent implementation using LangChain and OpenAI."""
 
 from typing import List, Dict, Any, Optional
+import datetime
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain.tools import BaseTool
 from langchain_openai import ChatOpenAI
@@ -94,7 +95,7 @@ class LiveXChatAgent:
 Remember to be conversational and helpful while being efficient with calendar operations. Always double-check important details before making changes to someone's calendar.
 """.format(
             user_email=settings.user_email,
-            current_time="Use current date/time from context"
+            current_time=datetime.datetime.now().isoformat()
         )
     
     def _create_agent(self) -> AgentExecutor:

@@ -28,6 +28,10 @@ class Settings(BaseSettings):
         default="https://api.cal.com/v2",
         description="Base URL for Cal.com API"
     )
+    calcom_api_version: str = Field(
+        default_factory=lambda: os.getenv("CALCOM_API_VERSION", "2024-08-13"),
+        description="cal-api-version header value for Cal.com v2 API"
+    )
     
     # User Configuration
     user_email: str = Field(
