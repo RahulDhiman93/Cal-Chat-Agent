@@ -316,10 +316,10 @@ async def startup_event():
     try:
         # Validate settings
         settings.validate_required_settings()
-        print("✅ CalBolt Chat Agent API started successfully")
-        print(f"📊 Debug mode: {settings.debug}")
-        print(f"🔑 OpenAI API key configured: {'Yes' if settings.openai_api_key else 'No'}")
-        print(f"📅 Cal.com API key configured: {'Yes' if settings.calcom_api_key else 'No'}")
+        print("--- CalBolt Chat Agent API started successfully")
+        print(f"--- Debug mode: {settings.debug}")
+        print(f"--- OpenAI API key configured: {'Yes' if settings.openai_api_key else 'No'}")
+        print(f"--- Cal.com API key configured: {'Yes' if settings.calcom_api_key else 'No'}")
         
     except Exception as e:
         print(f"❌ Error during startup: {e}")

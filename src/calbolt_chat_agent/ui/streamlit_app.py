@@ -1,12 +1,13 @@
-"""Streamlit web interface for CalBolt Chat Agent."""
+"""Simple, clean chat interface for CalBolt Chat Agent."""
 
 import streamlit as st
 import uuid
 import sys
 import os
+import time
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import json
 
 # Add src directory to Python path for proper imports
@@ -24,116 +25,293 @@ except ImportError:
     from ..config.settings import settings
 
 
-# Page configuration
+# Simple page configuration
 st.set_page_config(
-    page_title="CalBolt Chat Agent",
-    page_icon="L",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="CalBolt - Calendar Assistant",
+    page_icon=None,
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
+# Clean, simple CSS
 st.markdown("""
 <style>
-    .main-header {
+    /* Hide Streamlit elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+    
+    /* Main app styling */
+    .stApp {
+        background-color: #f8fafc;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    /* Container */
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 800px;
+    }
+    
+    /* Header */
+    .header {
         text-align: center;
-        padding: 1.5rem 0;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
         margin-bottom: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .chat-message {
         padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 8px;
-        max-width: 80%;
-        border: 1px solid #e0e0e0;
-    }
-    
-    .user-message {
-        background-color: #f8f9fa;
-        margin-left: auto;
-        text-align: right;
-        border-left: 4px solid #2a5298;
-    }
-    
-    .agent-message {
-        background-color: #ffffff;
-        margin-right: auto;
-        border-left: 4px solid #6c757d;
-    }
-    
-    .sidebar-section {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        margin: 1rem 0;
-        border-radius: 6px;
-        border-left: 4px solid #2a5298;
+        background: white;
+        border-radius: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
-    .success-message {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 1rem;
-        border-radius: 6px;
-        border: 1px solid #c3e6cb;
-        margin: 1rem 0;
-        font-weight: 500;
+    .header h1 {
+        color: #1f2937;
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 600;
     }
     
-    .error-message {
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 1rem;
-        border-radius: 6px;
-        border: 1px solid #f5c6cb;
-        margin: 1rem 0;
-        font-weight: 500;
+    .header p {
+        color: #6b7280;
+        margin: 0;
+        font-size: 1.1rem;
     }
     
-    .info-message {
-        background-color: #e8f4f8;
-        color: #2c3e50;
-        padding: 1.25rem;
-        border-radius: 6px;
-        border: 1px solid #bee5eb;
-        margin: 1rem 0;
-        font-weight: 400;
-        line-height: 1.6;
+    /* Chat container */
+    .chat-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    /* Messages area */
+    .messages {
+        padding: 1.5rem;
+        min-height: 400px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .message.user {
+        flex-direction: row-reverse;
+    }
+    
+    .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #374151;
+        flex-shrink: 0;
+    }
+    
+    .message.user .avatar {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .message-content {
+        background: #f3f4f6;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        max-width: 70%;
+        color: #1f2937;
+        line-height: 1.5;
+    }
+    
+    .message.user .message-content {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .timestamp {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+    }
+    
+    /* Welcome area */
+    .welcome {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+    }
+    
+    .welcome h3 {
+        color: #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    /* Suggestions */
+    .suggestions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin: 1.5rem 0;
+    }
+    
+    .suggestion {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.75rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+    
+    .suggestion:hover {
+        background: #f3f4f6;
+        border-color: #3b82f6;
+        transform: translateY(-1px);
+    }
+    
+    /* Input area */
+    .input-area {
+        padding: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+    
+    /* Enhanced Streamlit components */
+    .stTextArea > div > div > textarea {
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        font-size: 0.875rem;
+        padding: 0.75rem;
+    }
+    
+    .stTextArea > div > div > textarea:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
     }
     
     .stButton > button {
-        border-radius: 6px;
-        border: 1px solid #2a5298;
-        background-color: #2a5298;
+        background: #3b82f6;
         color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
         font-weight: 500;
-        transition: all 0.2s ease;
+        transition: background-color 0.2s ease;
     }
     
     .stButton > button:hover {
-        background-color: #1e3c72;
-        border-color: #1e3c72;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background: #2563eb;
+    }
+    
+    /* Status indicator */
+    .status {
+        text-align: center;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .status.error {
+        color: #dc2626;
+        background: #fef2f2;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+    
+    .status.success {
+        color: #059669;
+        background: #ecfdf5;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+    
+    /* Typing indicator */
+    .typing {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .typing-dots {
+        display: flex;
+        gap: 2px;
+    }
+    
+    .typing-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #9ca3af;
+        animation: typing 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    .typing-dot:nth-child(3) { animation-delay: 0s; }
+    
+    @keyframes typing {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    /* Controls */
+    .controls {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin: 1rem 0;
+    }
+    
+    .control-btn {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .control-btn:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
-class StreamlitChatInterface:
-    """Streamlit chat interface for CalBolt Chat Agent."""
+class SimpleChatInterface:
+    """Simple chat interface for CalBolt."""
     
     def __init__(self):
-        """Initialize the Streamlit interface."""
+        """Initialize the simple chat interface."""
         self.initialize_session_state()
-        self.setup_configuration()
+        self.setup_agent()
     
     def initialize_session_state(self):
-        """Initialize Streamlit session state variables."""
+        """Initialize session state variables."""
         if "session_id" not in st.session_state:
             st.session_state.session_id = str(uuid.uuid4())
         
@@ -143,275 +321,243 @@ class StreamlitChatInterface:
         if "agent" not in st.session_state:
             st.session_state.agent = None
         
-        if "agent_initialized" not in st.session_state:
-            st.session_state.agent_initialized = False
+        if "agent_ready" not in st.session_state:
+            st.session_state.agent_ready = False
         
-        if "show_config" not in st.session_state:
-            st.session_state.show_config = False
+        if "is_processing" not in st.session_state:
+            st.session_state.is_processing = False
+        
+        if "error_message" not in st.session_state:
+            st.session_state.error_message = None
     
-    def setup_configuration(self):
-        """Setup agent configuration."""
-        if not st.session_state.agent_initialized:
+    def setup_agent(self):
+        """Setup the chat agent."""
+        if not st.session_state.agent_ready:
             try:
                 st.session_state.agent = LiveXChatAgent()
-                st.session_state.agent_initialized = True
+                st.session_state.agent_ready = True
+                st.session_state.error_message = None
             except Exception as e:
-                st.session_state.config_error = str(e)
+                st.session_state.agent_ready = False
+                st.session_state.error_message = str(e)
+    
+    def check_configuration(self):
+        """Check if configuration is valid."""
+        return (
+            bool(settings.openai_api_key) and 
+            bool(settings.calcom_api_key) and 
+            bool(settings.user_email)
+        )
     
     def render_header(self):
-        """Render the main header."""
+        """Render simple header."""
         st.markdown("""
-        <div class="main-header">
-            <h1>CalBolt Chat Agent</h1>
-            <p>Professional Calendar Management Assistant</p>
+        <div class="header">
+            <h1>CalBolt</h1>
+            <p>Your Calendar Assistant</p>
         </div>
         """, unsafe_allow_html=True)
     
-    def render_sidebar(self):
-        """Render the sidebar with controls and information."""
-        with st.sidebar:
-            st.title("Controls")
-            
-            # Configuration section
-            with st.expander("Configuration", expanded=st.session_state.show_config):
-                self.render_configuration()
-            
-            # Session management
-            with st.expander("Session Management"):
-                self.render_session_management()
-            
-            # Quick actions
-            with st.expander("Quick Actions"):
-                self.render_quick_actions()
-            
-            # Help section
-            with st.expander("Help & Examples"):
-                self.render_help_section()
-    
-    def render_configuration(self):
-        """Render configuration settings."""
-        st.markdown("### API Configuration")
-        
-        # Check current configuration
-        config_status = self.check_configuration()
-        
-        if config_status["all_configured"]:
-            st.markdown('<div class="success-message">All APIs configured successfully</div>', 
-                       unsafe_allow_html=True)
+    def render_status(self):
+        """Render configuration status."""
+        if st.session_state.error_message:
+            st.markdown(f"""
+            <div class="status error">
+                Configuration needed. Please check your API keys in the .env file.
+            </div>
+            """, unsafe_allow_html=True)
+            return False
+        elif not self.check_configuration():
+            st.markdown("""
+            <div class="status error">
+                Please configure your API keys to get started.
+            </div>
+            """, unsafe_allow_html=True)
+            return False
         else:
-            st.markdown('<div class="error-message">Missing API configuration</div>', 
-                       unsafe_allow_html=True)
-        
-        # Configuration status
-        st.markdown("**Status:**")
-        st.write(f"- OpenAI API: {'Configured' if config_status['openai'] else 'Not configured'}")
-        st.write(f"- Cal.com API: {'Configured' if config_status['calcom'] else 'Not configured'}")
-        st.write(f"- User Email: {'Configured' if config_status['email'] else 'Not configured'}")
-        
-        if not config_status["all_configured"]:
-            st.markdown("**Setup Instructions:**")
-            st.write("1. Copy `env.example` to `.env`")
-            st.write("2. Add your API keys and email")
-            st.write("3. Restart the application")
+            st.markdown("""
+            <div class="status success">
+                Ready to help with your calendar!
+            </div>
+            """, unsafe_allow_html=True)
+            return True
     
-    def check_configuration(self) -> Dict[str, bool]:
-        """Check if all required configuration is present."""
-        return {
-            "openai": bool(settings.openai_api_key),
-            "calcom": bool(settings.calcom_api_key),
-            "email": bool(settings.user_email),
-            "all_configured": bool(settings.openai_api_key and settings.calcom_api_key and settings.user_email)
-        }
-    
-    def render_session_management(self):
-        """Render session management controls."""
-        st.markdown(f"**Session ID:** `{st.session_state.session_id[:8]}...`")
+    def render_welcome(self):
+        """Render welcome message with suggestions."""
+        st.markdown("""
+        <div class="welcome">
+            <h3>Welcome! How can I help you today?</h3>
+            <p>I can help you manage your calendar, schedule meetings, and check your availability.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("New Session", help="Start a new conversation"):
-                self.start_new_session()
-        
-        with col2:
-            if st.button("Clear Chat", help="Clear current conversation"):
-                self.clear_chat()
-        
-        # Chat history info
-        if st.session_state.chat_history:
-            st.write(f"**Messages:** {len(st.session_state.chat_history)}")
-            
-            if st.button("Export Chat", help="Export conversation as JSON"):
-                self.export_chat_history()
-    
-    def render_quick_actions(self):
-        """Render quick action buttons."""
-        st.markdown("**Common Tasks:**")
-        
-        quick_actions = [
-            ("List my meetings", "Show me all my scheduled meetings"),
-            ("Book a meeting", "Help me book a new meeting"),
-            ("Cancel a meeting", "I need to cancel a meeting"),
-            ("Reschedule meeting", "I want to reschedule a meeting"),
+        # Simple suggestions
+        suggestions = [
+            "Show my meetings today",
+            "Schedule a meeting",
+            "Check my availability this week",
+            "Cancel a meeting"
         ]
         
-        for label, message in quick_actions:
-            if st.button(label, help=f"Send: {message}"):
-                self.send_quick_message(message)
+        st.markdown("### Try these examples:")
+        cols = st.columns(2)
+        
+        for i, suggestion in enumerate(suggestions):
+            col = cols[i % 2]
+            with col:
+                if st.button(suggestion, key=f"suggestion_{i}", use_container_width=True):
+                    self.send_message(suggestion)
     
-    def render_help_section(self):
-        """Render help and examples section."""
-        st.markdown("**Example Commands:**")
+    def render_messages(self):
+        """Render chat messages."""
+        st.markdown('<div class="messages">', unsafe_allow_html=True)
         
-        examples = [
-            "Book a meeting with John on Tuesday at 3pm",
-            "Show me my meetings for this week",
-            "Cancel my 2pm meeting today",
-            "Reschedule my meeting with Sarah to tomorrow",
-            "What meetings do I have on Friday?",
-            "Book a 1-hour call with the team next Monday"
-        ]
-        
-        for example in examples:
-            if st.button(f"{example}", key=f"example_{hash(example)}"):
-                self.send_quick_message(example)
-        
-        st.markdown("---")
-        st.markdown("**Tips:**")
-        st.write("- Use natural language for dates and times")
-        st.write("- Be specific about meeting details")
-        st.write("- Ask for confirmation before changes")
-    
-    def render_chat_interface(self):
-        """Render the main chat interface."""
-        # Chat container
-        chat_container = st.container()
-        
-        # Display chat history
-        with chat_container:
-            if not st.session_state.chat_history:
-                st.markdown("""
-                <div class="info-message">
-                    Welcome! I'm your CalBolt Chat Agent. I can help you:
-                    <ul>
-                        <li>Book new meetings</li>
-                        <li>List your scheduled meetings</li>
-                        <li>Cancel meetings</li>
-                        <li>Reschedule meetings</li>
-                    </ul>
-                    Simply type your request in natural language to get started.
-                </div>
-                """, unsafe_allow_html=True)
-            
+        if not st.session_state.chat_history:
+            self.render_welcome()
+        else:
             for message in st.session_state.chat_history:
                 self.render_message(message)
         
-        # Input area
-        self.render_input_area()
+        # Typing indicator
+        if st.session_state.is_processing:
+            st.markdown("""
+            <div class="typing">
+                <div class="avatar">CB</div>
+                <div>
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span style="margin-left: 0.5rem; color: #6b7280; font-size: 0.875rem;">
+                        CalBolt is thinking...
+                    </span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    def render_message(self, message: Dict[str, Any]):
-        """Render a single chat message."""
+    def render_message(self, message):
+        """Render a single message."""
         is_user = message["role"] == "user"
+        role_class = "user" if is_user else "assistant"
+        avatar_text = "U" if is_user else "CB"
         
-        # Message container
-        message_class = "user-message" if is_user else "agent-message"
-        
-        # Format timestamp
-        timestamp = message.get("timestamp", "")
-        if timestamp:
-            timestamp_str = f" - {timestamp}"
-        else:
-            timestamp_str = ""
-        
-        # Render message
         st.markdown(f"""
-        <div class="chat-message {message_class}">
-            <strong>{'You' if is_user else 'CalBolt Agent'}{timestamp_str}:</strong><br>
-            {message['content']}
+        <div class="message {role_class}">
+            <div class="avatar">{avatar_text}</div>
+            <div>
+                <div class="message-content">{message['content']}</div>
+                <div class="timestamp">{message.get('timestamp', '')}</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
-    def render_input_area(self):
-        """Render the chat input area."""
+    def render_input(self):
+        """Render input area."""
+        st.markdown('<div class="input-area">', unsafe_allow_html=True)
+        
+        # Simple controls
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            if st.button("Clear", use_container_width=True):
+                self.clear_chat()
+        with col2:
+            if st.button("Export", use_container_width=True):
+                self.export_chat()
+        
         # Input form
         with st.form("chat_form", clear_on_submit=True):
             col1, col2 = st.columns([4, 1])
             
             with col1:
                 user_input = st.text_area(
-                    "Type your message:",
-                    placeholder="e.g., 'Book a meeting with John tomorrow at 3pm'",
-                    height=100,
-                    label_visibility="collapsed"
+                    "Type your message...",
+                    height=60,
+                    placeholder="Ask me about your calendar, meetings, or schedule...",
+                    label_visibility="collapsed",
+                    disabled=st.session_state.is_processing
                 )
             
             with col2:
-                st.write("")  # Spacing
-                submit_button = st.form_submit_button("Send", use_container_width=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                send_button = st.form_submit_button(
+                    "Send" if not st.session_state.is_processing else "...",
+                    use_container_width=True,
+                    disabled=st.session_state.is_processing
+                )
         
-        # Process input
-        if submit_button and user_input.strip():
-            self.process_user_message(user_input.strip())
+        if send_button and user_input.strip():
+            self.send_message(user_input.strip())
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    def process_user_message(self, message: str):
-        """Process user message and get agent response."""
-        if not st.session_state.agent_initialized:
-            st.error("Agent not initialized. Please check your configuration.")
+    def send_message(self, message):
+        """Send a message to the agent."""
+        if not st.session_state.agent_ready:
+            st.error("Agent not ready. Please check your configuration.")
             return
         
-        # Add user message to history
-        user_message = {
-            "role": "user",
-            "content": message,
-            "timestamp": datetime.now().strftime("%H:%M")
-        }
-        st.session_state.chat_history.append(user_message)
+        if st.session_state.is_processing:
+            return
         
-        # Get agent response
-        with st.spinner("Processing your request..."):
-            try:
-                response = st.session_state.agent.chat(message)
-                
-                # Add agent response to history
-                agent_message = {
-                    "role": "agent",
-                    "content": response,
-                    "timestamp": datetime.now().strftime("%H:%M")
-                }
-                st.session_state.chat_history.append(agent_message)
-                
-            except Exception as e:
-                error_message = {
-                    "role": "agent",
-                    "content": f"Sorry, I encountered an error: {str(e)}",
-                    "timestamp": datetime.now().strftime("%H:%M")
-                }
-                st.session_state.chat_history.append(error_message)
+        try:
+            # Add user message
+            user_message = {
+                "role": "user",
+                "content": message,
+                "timestamp": datetime.now().strftime("%H:%M")
+            }
+            st.session_state.chat_history.append(user_message)
+            
+            # Set processing state
+            st.session_state.is_processing = True
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+    
+    def process_response(self, user_message):
+        """Process agent response."""
+        try:
+            response = st.session_state.agent.chat(user_message)
+            
+            agent_message = {
+                "role": "assistant",
+                "content": response,
+                "timestamp": datetime.now().strftime("%H:%M")
+            }
+            st.session_state.chat_history.append(agent_message)
+            
+        except Exception as e:
+            error_message = {
+                "role": "assistant",
+                "content": f"Sorry, I encountered an error: {str(e)}",
+                "timestamp": datetime.now().strftime("%H:%M")
+            }
+            st.session_state.chat_history.append(error_message)
         
-        # Rerun to update the interface
-        st.rerun()
-    
-    def send_quick_message(self, message: str):
-        """Send a predefined quick message."""
-        self.process_user_message(message)
-    
-    def start_new_session(self):
-        """Start a new chat session."""
-        st.session_state.session_id = str(uuid.uuid4())
-        st.session_state.chat_history = []
-        if st.session_state.agent:
-            st.session_state.agent.reset_conversation()
-        st.rerun()
+        finally:
+            st.session_state.is_processing = False
     
     def clear_chat(self):
-        """Clear the current chat history."""
+        """Clear chat history."""
         st.session_state.chat_history = []
         if st.session_state.agent:
-            st.session_state.agent.reset_conversation()
+            try:
+                st.session_state.agent.reset_conversation()
+            except:
+                pass
+        st.success("Chat cleared!")
         st.rerun()
     
-    def export_chat_history(self):
-        """Export chat history as JSON."""
+    def export_chat(self):
+        """Export chat history."""
+        if not st.session_state.chat_history:
+            st.warning("No messages to export.")
+            return
+        
         export_data = {
             "session_id": st.session_state.session_id,
             "export_time": datetime.now().isoformat(),
@@ -419,44 +565,71 @@ class StreamlitChatInterface:
         }
         
         st.download_button(
-            label="Download Chat History",
+            label="Download Chat",
             data=json.dumps(export_data, indent=2),
-            file_name=f"calbolt_chat_{st.session_state.session_id[:8]}.json",
+            file_name=f"calbolt_chat_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
             mime="application/json"
         )
     
     def run(self):
-        """Run the Streamlit application."""
+        """Run the simple chat interface."""
+        # Header
         self.render_header()
         
-        # Main layout
-        col1, col2 = st.columns([3, 1])
+        # Status
+        is_ready = self.render_status()
         
-        with col1:
-            self.render_chat_interface()
+        if not is_ready:
+            st.markdown("""
+            ### Setup Instructions:
+            1. Copy `env.example` to `.env`
+            2. Add your API keys:
+               - `OPENAI_API_KEY=your_openai_key`
+               - `CALCOM_API_KEY=your_calcom_key` 
+               - `USER_EMAIL=your_email`
+            3. Restart the application
+            """)
+            return
         
-        with col2:
-            self.render_sidebar()
+        # Handle agent processing
+        if st.session_state.is_processing and st.session_state.chat_history:
+            last_message = st.session_state.chat_history[-1]
+            if last_message["role"] == "user":
+                self.process_response(last_message["content"])
+                st.rerun()
+        
+        # Chat container
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        
+        # Messages
+        self.render_messages()
+        
+        # Input
+        self.render_input()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def main():
-    """Main function to run the Streamlit app."""
+    """Main function."""
     try:
-        # Initialize and run the interface
-        interface = StreamlitChatInterface()
+        interface = SimpleChatInterface()
         interface.run()
-        
     except Exception as e:
         st.error(f"Application Error: {str(e)}")
         
-        # Show configuration help
-        st.markdown("### Configuration Help")
-        st.write("1. Ensure you have set up your `.env` file with required API keys")
-        st.write("2. Check that all dependencies are installed")
-        st.write("3. Verify your Cal.com and OpenAI API keys are valid")
-        
-        if st.button("Retry"):
-            st.rerun()
+        with st.expander("Need Help?"):
+            st.markdown("""
+            **Common Issues:**
+            - Missing API keys in .env file
+            - Invalid API keys
+            - Network connectivity issues
+            
+            **Setup:**
+            1. Make sure you have a .env file with your API keys
+            2. Check that all required dependencies are installed
+            3. Restart the application after making changes
+            """)
 
 
 if __name__ == "__main__":
