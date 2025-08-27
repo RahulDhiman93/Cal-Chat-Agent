@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  livex-chat-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: livex-chat-agent
+    ports:
+      - "8501:8501"
+    environment:
+      # These should be set in a .env file or provided at runtime
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CALCOM_API_KEY=${CALCOM_API_KEY}
+      - USER_EMAIL=${USER_EMAIL}
+      - DEBUG=${DEBUG:-false}
+      - CALCOM_API_VERSION=${CALCOM_API_VERSION:-2024-08-13}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Optional: Add a reverse proxy for production
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: livex-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - livex-chat-agent
+  #   restart: unless-stopped
