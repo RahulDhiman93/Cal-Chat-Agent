@@ -243,20 +243,31 @@ st.markdown("""
     .typing {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.75rem;
         margin-bottom: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .typing-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
     }
     
     .typing-dots {
         display: flex;
-        gap: 2px;
+        gap: 3px;
+        align-items: center;
     }
     
     .typing-dot {
-        width: 6px;
-        height: 6px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
-        background: #9ca3af;
+        background: #3b82f6;
         animation: typing 1.4s infinite ease-in-out;
     }
     
@@ -264,14 +275,40 @@ st.markdown("""
     .typing-dot:nth-child(2) { animation-delay: -0.16s; }
     .typing-dot:nth-child(3) { animation-delay: 0s; }
     
+    .typing-text {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
     @keyframes typing {
         0%, 80%, 100% {
-            transform: scale(0.8);
-            opacity: 0.5;
+            transform: scale(0.6);
+            opacity: 0.4;
         }
         40% {
             transform: scale(1);
             opacity: 1;
+        }
+    }
+    
+    /* Loading overlay for input */
+    .input-loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    /* Pulse animation for loading states */
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
         }
     }
     
@@ -405,7 +442,7 @@ class SimpleChatInterface:
         for i, suggestion in enumerate(suggestions):
             col = cols[i % 2]
             with col:
-                if st.button(suggestion, key=f"suggestion_{i}", use_container_width=True):
+                if st.button(suggestion, key=f"suggestion_{i}", use_container_width=True, disabled=st.session_state.is_processing):
                     self.send_message(suggestion)
     
     def render_messages(self):
@@ -423,15 +460,13 @@ class SimpleChatInterface:
             st.markdown("""
             <div class="typing">
                 <div class="avatar">CB</div>
-                <div>
+                <div class="typing-content">
                     <div class="typing-dots">
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
                     </div>
-                    <span style="margin-left: 0.5rem; color: #6b7280; font-size: 0.875rem;">
-                        CalBolt is thinking...
-                    </span>
+                    <div class="typing-text">CalBolt is thinking...</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -445,6 +480,7 @@ class SimpleChatInterface:
         avatar_text = "U" if is_user else "CB"
         
         st.markdown(f"""
+        <br />
         <div class="message {role_class}">
             <div class="avatar">{avatar_text}</div>
             <div>
@@ -452,19 +488,30 @@ class SimpleChatInterface:
                 <div class="timestamp">{message.get('timestamp', '')}</div>
             </div>
         </div>
+        <br />
         """, unsafe_allow_html=True)
     
     def render_input(self):
         """Render input area."""
-        st.markdown('<div class="input-area">', unsafe_allow_html=True)
+        # Add loading class if processing
+        loading_class = " input-loading" if st.session_state.is_processing else ""
+        st.markdown(f'<div class="input-area{loading_class}">', unsafe_allow_html=True)
+        
+        # Show processing status
+        if st.session_state.is_processing:
+            st.markdown("""
+            <div style="text-align: center; padding: 0.5rem; color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                <span class="pulse">🤖 CalBolt is processing your request...</span>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Simple controls
         col1, col2, col3 = st.columns([1, 1, 2])
         with col1:
-            if st.button("Clear", use_container_width=True):
+            if st.button("Clear", use_container_width=True, disabled=st.session_state.is_processing):
                 self.clear_chat()
         with col2:
-            if st.button("Export", use_container_width=True):
+            if st.button("Export", use_container_width=True, disabled=st.session_state.is_processing):
                 self.export_chat()
         
         # Input form
@@ -472,23 +519,25 @@ class SimpleChatInterface:
             col1, col2 = st.columns([4, 1])
             
             with col1:
+                placeholder_text = "Processing..." if st.session_state.is_processing else "Ask me about your calendar, meetings, or schedule..."
                 user_input = st.text_area(
                     "Type your message...",
                     height=60,
-                    placeholder="Ask me about your calendar, meetings, or schedule...",
+                    placeholder=placeholder_text,
                     label_visibility="collapsed",
                     disabled=st.session_state.is_processing
                 )
             
             with col2:
                 st.markdown("<br>", unsafe_allow_html=True)
+                button_text = "Processing..." if st.session_state.is_processing else "Send"
                 send_button = st.form_submit_button(
-                    "Send" if not st.session_state.is_processing else "...",
+                    button_text,
                     use_container_width=True,
                     disabled=st.session_state.is_processing
                 )
         
-        if send_button and user_input.strip():
+        if send_button and user_input.strip() and not st.session_state.is_processing:
             self.send_message(user_input.strip())
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -513,16 +562,25 @@ class SimpleChatInterface:
             
             # Set processing state
             st.session_state.is_processing = True
+            
+            # Force immediate rerun to show loading state
             st.rerun()
             
         except Exception as e:
-            st.error(f"Error: {str(e)}")
+            st.session_state.is_processing = False
+            st.error(f"Error sending message: {str(e)}")
     
     def process_response(self, user_message):
         """Process agent response."""
         try:
+            # Ensure we're in processing state
+            if not st.session_state.is_processing:
+                st.session_state.is_processing = True
+            
+            # Get response from agent
             response = st.session_state.agent.chat(user_message)
             
+            # Add agent response
             agent_message = {
                 "role": "assistant",
                 "content": response,
@@ -531,14 +589,16 @@ class SimpleChatInterface:
             st.session_state.chat_history.append(agent_message)
             
         except Exception as e:
+            # Add error message to chat
             error_message = {
                 "role": "assistant",
-                "content": f"Sorry, I encountered an error: {str(e)}",
+                "content": f"Sorry, I encountered an error while processing your request: {str(e)}",
                 "timestamp": datetime.now().strftime("%H:%M")
             }
             st.session_state.chat_history.append(error_message)
-        
+            
         finally:
+            # Always clear processing state
             st.session_state.is_processing = False
     
     def clear_chat(self):
